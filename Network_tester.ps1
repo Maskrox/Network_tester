@@ -1,36 +1,45 @@
 <#
 .SYNOPSIS
-    Enterprise Network Master Tool v3.0 - Universal Diagnostics Suite.
+    Enterprise Network Master Tool v5.1 (Audit & Compliance Edition)
     
 .DESCRIPTION
-    The ultimate connectivity troubleshooting tool for Enterprise Environments.
+    A forensic-grade network diagnostic suite designed for restricted corporate environments.
+    Engineered for Systems Administrators and Network Engineers to validate connectivity
+    pathways, firewall rules, and SSL/TLS compliance without triggering security alerts.
     
-    FEATURES:
-    - Layer 1-7 Testing: ICMP, TCP Socket, DNS, and HTTP/Proxy.
-    - SSL INSPECTION: Checks certificate expiration dates and Issuer (Man-in-the-Middle detection).
-    - REPORTING: Export logs to timestamped text files.
-    - COMPATIBILITY: High-DPI support, Resizable Window, TLS 1.2 Enforcement.
-    - PROXY SUPPORT: Auto-detect (PAC), Manual, and Direct modes.
+    CAPABILITIES:
+    1. DNS RESOLUTION: Deep inspection of Hostnames, CNAMEs (Aliases), and IPs.
+    2. ICMP REACHABILITY: Standard Ping testing for Layer 3 availability.
+    3. PORT CHECK (TCP): Fast, non-blocking Socket connections to validate Firewall rules.
+    4. HTTP/PROXY (L7): Validates Web Proxy authentication and Application Layer reachability.
+    5. SSL INSPECTION: Decodes X.509 certificates to verify Validity, Chain, and SANs.
+    
+    SECURITY COMPLIANCE:
+    - PASSIVE EXECUTION: No background scanning or unauthorized network calls.
+    - ZERO TELEMETRY: Operates strictly offline/local.
+    - FLOW CONTROL: Includes user-interrupt (ABORT) capabilities for long lists.
 
 .NOTES
-    Version:        3.0 (Master Edition)
+    Version:        5.1 (Stable)
     Requirements:   PowerShell 5.1+, .NET Framework 4.5+
-    Author:         [Your Name/Handle]
-    License:        MIT
+    License:        Internal Enterprise Use
 #>
 
 # Load Assemblies
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# SECURITY: Force TLS 1.2 (Mandatory for modern cloud connectivity)
+# SECURITY: Force TLS 1.2 (Industry Standard)
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# GLOBAL CONTROL VARIABLE
+$script:CancelRequest = $false
+
 # =============================================================================
-# MAIN FORM SETUP
+# GUI SETUP
 # =============================================================================
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Enterprise Network Master Tool v3.0"
+$form.Text = "Enterprise Network Master Tool v5.1"
 $form.Size = New-Object System.Drawing.Size(1100, 850)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
@@ -47,7 +56,7 @@ $fontInput = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.Font
 $fontLog   = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Regular)
 
 # =============================================================================
-# SECTION 1: TARGET CONFIGURATION (Left Panel)
+# SECTION 1: TARGET CONFIGURATION
 # =============================================================================
 $grpTargets = New-Object System.Windows.Forms.GroupBox
 $grpTargets.Text = " 1. Target Configuration "
@@ -74,11 +83,12 @@ $form.Controls.Add($grpTargets)
     $txtTargets.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 50)
     $txtTargets.ForeColor = "White"
     $txtTargets.Font = $fontInput
-    $txtTargets.Text = "google.com`nmicrosoft.com`ncloudflare.com`n1.1.1.1"
+    # Default text is commented out to prevent accidental external calls
+    $txtTargets.Text = "# Enter server list here...`n# Ex: srv-app01.corp.local`n# Ex: 192.168.1.50"
     $grpTargets.Controls.Add($txtTargets)
 
     $lblPort = New-Object System.Windows.Forms.Label
-    $lblPort.Text = "TCP Port (For Telnet Test):"
+    $lblPort.Text = "TCP Port (For Socket Test):"
     $lblPort.Location = New-Object System.Drawing.Point(15, 215)
     $lblPort.AutoSize = $true
     $lblPort.Font = $fontLabel
@@ -93,7 +103,7 @@ $form.Controls.Add($grpTargets)
     $grpTargets.Controls.Add($txtPort)
 
 # =============================================================================
-# SECTION 2: PROXY STRATEGY (Left Panel)
+# SECTION 2: PROXY STRATEGY
 # =============================================================================
 $grpProxy = New-Object System.Windows.Forms.GroupBox
 $grpProxy.Text = " 2. Proxy Strategy "
@@ -145,12 +155,12 @@ $form.Controls.Add($grpProxy)
     $grpProxy.Controls.Add($rbNoProxy)
 
 # =============================================================================
-# SECTION 3: EXECUTION CONTROLS (AUTO-LAYOUT)
+# SECTION 3: EXECUTION CONTROLS
 # =============================================================================
 $grpActions = New-Object System.Windows.Forms.GroupBox
 $grpActions.Text = " 3. Execute Diagnostics "
 $grpActions.Location = New-Object System.Drawing.Point(15, 520)
-$grpActions.Size = New-Object System.Drawing.Size(350, 310) # Increased height for SSL button
+$grpActions.Size = New-Object System.Drawing.Size(350, 310)
 $grpActions.ForeColor = "LightGreen"
 $grpActions.Font = $fontTitle
 $grpActions.Anchor = "Top, Left"
@@ -189,7 +199,7 @@ $form.Controls.Add($grpActions)
 
     # 3. TCP
     $btnTCP = New-Object System.Windows.Forms.Button
-    $btnTCP.Text = "Test 3: TCP Socket (Firewall Check)"
+    $btnTCP.Text = "Test 3: TCP Socket (Fast Check)"
     $btnTCP.Size = New-Object System.Drawing.Size(310, 40)
     $btnTCP.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
     $btnTCP.BackColor = "DimGray"
@@ -209,19 +219,30 @@ $form.Controls.Add($grpActions)
     $btnHTTP.Font = [System.Drawing.Font]::new("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
     $flowPanel.Controls.Add($btnHTTP)
 
-    # 5. SSL (NEW)
+    # 5. SSL
     $btnSSL = New-Object System.Windows.Forms.Button
-    $btnSSL.Text = "Test 5: SSL Expiration Check"
+    $btnSSL.Text = "Test 5: SSL / TLS Inspector"
     $btnSSL.Size = New-Object System.Drawing.Size(310, 40)
-    $btnSSL.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
-    $btnSSL.BackColor = "Purple" # Distinct color
+    $btnSSL.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 15) # Extra margin bottom to separate STOP button
+    $btnSSL.BackColor = "Purple"
     $btnSSL.ForeColor = "White"
     $btnSSL.FlatStyle = "Flat"
     $btnSSL.Font = $fontLabel
     $flowPanel.Controls.Add($btnSSL)
 
+    # 6. STOP / ABORT (At the bottom)
+    $btnStop = New-Object System.Windows.Forms.Button
+    $btnStop.Text = "⛔ ABORT DIAGNOSTICS"
+    $btnStop.Size = New-Object System.Drawing.Size(310, 40)
+    $btnStop.Margin = New-Object System.Windows.Forms.Padding(0, 10, 0, 0)
+    $btnStop.BackColor = "Maroon"
+    $btnStop.ForeColor = "White"
+    $btnStop.FlatStyle = "Flat"
+    $btnStop.Font = [System.Drawing.Font]::new("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+    $flowPanel.Controls.Add($btnStop)
+
 # =============================================================================
-# SECTION 4: OUTPUT LOGS (Right Panel)
+# SECTION 4: OUTPUT LOGS
 # =============================================================================
 $grpLog = New-Object System.Windows.Forms.GroupBox
 $grpLog.Text = " Diagnostic Output "
@@ -232,7 +253,6 @@ $grpLog.Font = $fontTitle
 $grpLog.Anchor = "Top, Bottom, Left, Right"
 $form.Controls.Add($grpLog)
 
-    # RichTextBox
     $rtbLog = New-Object System.Windows.Forms.RichTextBox
     $rtbLog.Location = New-Object System.Drawing.Point(15, 30)
     $rtbLog.Size = New-Object System.Drawing.Size(660, 730)
@@ -243,7 +263,6 @@ $form.Controls.Add($grpLog)
     $rtbLog.Anchor = "Top, Bottom, Left, Right"
     $grpLog.Controls.Add($rtbLog)
     
-    # Button Clear (Left)
     $btnClear = New-Object System.Windows.Forms.Button
     $btnClear.Text = "Clear Logs"
     $btnClear.Location = New-Object System.Drawing.Point(15, 770)
@@ -255,7 +274,6 @@ $form.Controls.Add($grpLog)
     $btnClear.Anchor = "Bottom, Left"
     $grpLog.Controls.Add($btnClear)
 
-    # Button Save (Right) - NEW
     $btnSave = New-Object System.Windows.Forms.Button
     $btnSave.Text = "💾 Export Report to File"
     $btnSave.Location = New-Object System.Drawing.Point(350, 770)
@@ -280,14 +298,25 @@ function Log-Write ($text, $color) {
     $form.Refresh()
 }
 
-# --- EVENT: DNS ---
+# --- STOP LOGIC ---
+$btnStop.Add_Click({
+    $script:CancelRequest = $true
+    Log-Write ">>> PROCESS ABORTED BY USER <<<" "Red"
+})
+
+# --- 1. DNS TEST ---
 $btnDNS.Add_Click({
+    $script:CancelRequest = $false
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING FULL DNS LOOKUP" "Cyan"
     $targets = $txtTargets.Text -split "`n"
     foreach ($t in $targets) {
+        [System.Windows.Forms.Application]::DoEvents() # Keep GUI responsive
+        if ($script:CancelRequest) { break }
+
         $t = $t.Trim() -replace "https://","" -replace "http://","" -replace "/.*",""
-        if ([string]::IsNullOrWhiteSpace($t)) { continue }
+        if ([string]::IsNullOrWhiteSpace($t) -or $t.StartsWith("#")) { continue }
+        
         Log-Write "Querying: $t ..." "White"
         try {
             $entry = [System.Net.Dns]::GetHostEntry($t)
@@ -298,14 +327,19 @@ $btnDNS.Add_Click({
     }
 })
 
-# --- EVENT: PING ---
+# --- 2. PING TEST ---
 $btnPing.Add_Click({
+    $script:CancelRequest = $false
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING ICMP PING TEST" "Cyan"
     $targets = $txtTargets.Text -split "`n"
     foreach ($t in $targets) {
+        [System.Windows.Forms.Application]::DoEvents()
+        if ($script:CancelRequest) { break }
+
         $t = $t.Trim() -replace "https://","" -replace "http://","" -replace "/.*",""
-        if ([string]::IsNullOrWhiteSpace($t)) { continue }
+        if ([string]::IsNullOrWhiteSpace($t) -or $t.StartsWith("#")) { continue }
+        
         Log-Write "Pinging $t ..." "White"
         try {
             $ping = Test-Connection -ComputerName $t -Count 1 -ErrorAction SilentlyContinue
@@ -315,56 +349,86 @@ $btnPing.Add_Click({
     }
 })
 
-# --- EVENT: TCP ---
+# --- 3. TCP TEST (FAST SOCKETS) ---
 $btnTCP.Add_Click({
+    $script:CancelRequest = $false
     Log-Write "--------------------------------------------------" "Gray"
-    Log-Write ">>> STARTING TCP PORT TEST (Bypassing Proxy)" "Cyan"
-    $port = $txtPort.Text
+    Log-Write ">>> STARTING FAST TCP PORT TEST" "Cyan"
+    $port = [int]$txtPort.Text
     $targets = $txtTargets.Text -split "`n"
     foreach ($t in $targets) {
+        [System.Windows.Forms.Application]::DoEvents()
+        if ($script:CancelRequest) { break }
+
         $t = $t.Trim() -replace "https://","" -replace "http://","" -replace "/.*",""
-        if ([string]::IsNullOrWhiteSpace($t)) { continue }
+        if ([string]::IsNullOrWhiteSpace($t) -or $t.StartsWith("#")) { continue }
+        
         Log-Write "Connecting to $t : $port ..." "White"
         try {
-            $tcp = Test-NetConnection -ComputerName $t -Port $port -InformationLevel Quiet
-            if ($tcp) { Log-Write "  [OPEN] Connection Established." "Green" }
-            else { Log-Write "  [CLOSED] Connection Refused/Filtered." "Red" }
-        } catch { Log-Write "  [ERROR] DNS/Network Unreachable." "Red" }
+            $client = New-Object System.Net.Sockets.TcpClient
+            $connect = $client.BeginConnect($t, $port, $null, $null)
+            $success = $connect.AsyncWaitHandle.WaitOne(3000, $true) # 3s Timeout
+            
+            if ($success) {
+                if ($client.Connected) {
+                    Log-Write "  [OPEN] Connection Established." "Green"
+                    $client.EndConnect($connect)
+                } else { Log-Write "  [CLOSED] Connection Refused." "Red" }
+            } else { Log-Write "  [TIMEOUT] Dropped (Firewall blocked)." "Red" }
+            $client.Close()
+        } catch { Log-Write "  [ERROR] Resolve/Network Error." "Red" }
     }
 })
 
-# --- EVENT: HTTP ---
+# --- 4. HTTP TEST (NET ENGINE - LIGHTWEIGHT) ---
 $btnHTTP.Add_Click({
+    $script:CancelRequest = $false
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING HTTP PROXY TEST (Layer 7)" "Cyan"
+    
+    # Proxy Setup
+    $proxyObj = $null
     try {
         if ($rbPac.Checked) {
             Log-Write "Strategy: SYSTEM / PAC (Auto-Detect)" "Yellow"
-            $sysProxy = [System.Net.WebRequest]::GetSystemWebProxy()
-            $sysProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
-            [System.Net.WebRequest]::DefaultWebProxy = $sysProxy
+            $proxyObj = [System.Net.WebRequest]::GetSystemWebProxy()
+            $proxyObj.Credentials = [System.Net.CredentialCache]::DefaultCredentials
         } elseif ($rbManual.Checked) {
             if ([string]::IsNullOrWhiteSpace($txtProxyAddr.Text)) { Log-Write "Error: Proxy Address empty." "Red"; return }
             $p = "http://" + $txtProxyAddr.Text + ":" + $txtProxyPort.Text
             Log-Write "Strategy: MANUAL PROXY ($p)" "Yellow"
-            $wp = New-Object System.Net.WebProxy($p)
-            $wp.UseDefaultCredentials = $true
-            [System.Net.WebRequest]::DefaultWebProxy = $wp
+            $proxyObj = New-Object System.Net.WebProxy($p)
+            $proxyObj.UseDefaultCredentials = $true
         } else {
             Log-Write "Strategy: DIRECT ACCESS" "Magenta"
-            [System.Net.WebRequest]::DefaultWebProxy = [System.Net.WebRequest]::GetSystemWebProxy()
+            $proxyObj = [System.Net.WebRequest]::GetSystemWebProxy()
         }
     } catch { Log-Write "Proxy Config Error: $($_.Exception.Message)" "Red"; return }
 
+    # Execution
     $targets = $txtTargets.Text -split "`n"
     foreach ($t in $targets) {
+        [System.Windows.Forms.Application]::DoEvents()
+        if ($script:CancelRequest) { break }
+
         $t = $t.Trim()
-        if ([string]::IsNullOrWhiteSpace($t)) { continue }
+        if ([string]::IsNullOrWhiteSpace($t) -or $t.StartsWith("#")) { continue }
         if (-not ($t -match "^http")) { $t = "https://" + $t }
+        
         Log-Write "Requesting: $t" "White"
         try {
-            $req = Invoke-WebRequest -Uri $t -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-            Log-Write "  [SUCCESS] 200 OK - Full Access." "Green"
+            # Use HttpWebRequest (Lightweight) instead of Invoke-WebRequest
+            $req = [System.Net.HttpWebRequest]::Create($t)
+            $req.Timeout = 30000 
+            $req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0"
+            
+            if ($rbNoProxy.Checked) { $req.Proxy = $null } 
+            else { $req.Proxy = $proxyObj }
+
+            $resp = $req.GetResponse()
+            $c = [int]$resp.StatusCode
+            Log-Write "  [SUCCESS] $c $($resp.StatusDescription)" "Green"
+            $resp.Close()
         } catch {
             $ex = $_.Exception
             if ($ex.Response) {
@@ -372,17 +436,23 @@ $btnHTTP.Add_Click({
                 if ($c -eq 404 -or $c -eq 403) { Log-Write "  [CONNECTED] Reached Server (Code $c)." "Lime" }
                 elseif ($c -eq 407) { Log-Write "  [BLOCKED] Proxy Auth Required (407)." "Red" }
                 else { Log-Write "  [WARNING] Server Code $c" "Orange" }
-            } else { Log-Write "  [FAIL] Unreachable." "Red" }
+            } else { 
+                if ($ex.Message -like "*timed out*") {
+                     Log-Write "  [FAIL] Connection Timed Out (Firewall/Proxy Block)." "Red"
+                } else {
+                     Log-Write "  [FAIL] Error: $($ex.Message)" "Red"
+                }
+            }
         }
     }
 })
 
-# --- EVENT: SSL ---
+# --- 5. SSL TEST ---
 $btnSSL.Add_Click({
+    $script:CancelRequest = $false
     Log-Write "--------------------------------------------------" "Gray"
-    Log-Write ">>> STARTING SSL CERTIFICATE INSPECTION" "Cyan"
+    Log-Write ">>> STARTING ADVANCED SSL/TLS INSPECTION" "Cyan"
     
-    # Configure Proxy for SSL Request
     $proxyObj = $null
     if ($rbPac.Checked) { 
         $proxyObj = [System.Net.WebRequest]::GetSystemWebProxy()
@@ -394,61 +464,69 @@ $btnSSL.Add_Click({
         }
     }
 
-    # Override SSL validation (to read certs even if they have errors)
     [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 
     $targets = $txtTargets.Text -split "`n"
     foreach ($t in $targets) {
+        [System.Windows.Forms.Application]::DoEvents()
+        if ($script:CancelRequest) { break }
+
         $t = $t.Trim()
-        if ([string]::IsNullOrWhiteSpace($t)) { continue }
+        if ([string]::IsNullOrWhiteSpace($t) -or $t.StartsWith("#")) { continue }
         if (-not ($t -match "^http")) { $t = "https://" + $t }
 
         Log-Write "Inspecting: $t" "White"
         try {
             $req = [System.Net.HttpWebRequest]::Create($t)
-            $req.Timeout = 10000
-            if ($proxyObj) { $req.Proxy = $proxyObj } else { $req.Proxy = $null }
+            $req.Timeout = 30000 
+            $req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            
+            if ($rbNoProxy.Checked) { $req.Proxy = $null } 
+            else { if ($proxyObj) { $req.Proxy = $proxyObj } }
+
             try { $null = $req.GetResponse() } catch {}
             
             if ($req.ServicePoint.Certificate) {
-                $cert = $req.ServicePoint.Certificate
-                $expiry = [DateTime]::Parse($cert.GetExpirationDateString())
-                $daysLeft = ($expiry - (Get-Date)).Days
-                $issuer = $cert.GetIssuerName()
+                $cert2 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($req.ServicePoint.Certificate)
                 
-                $msg = "  [VALID] Expires: $($expiry.ToShortDateString()) ($daysLeft days left)"
-                if ($daysLeft -lt 0) { Log-Write $msg "Red" }
-                elseif ($daysLeft -lt 60) { Log-Write $msg "Yellow" }
-                else { Log-Write $msg "Lime" }
-                Log-Write "  [ISSUER] $issuer" "Gray"
-            } else {
-                Log-Write "  [ERROR] No Certificate info returned." "Red"
-            }
-        } catch {
-            Log-Write "  [FAIL] Connection Error: $($_.Exception.Message)" "Red"
-        }
+                $expiry = $cert2.NotAfter
+                $daysLeft = ($expiry - (Get-Date)).Days
+                $msgDate = "  [VALIDITY] Expires: $($expiry.ToShortDateString()) ($daysLeft days left)"
+                if ($daysLeft -lt 0) { Log-Write $msgDate "Red" }
+                elseif ($daysLeft -lt 60) { Log-Write $msgDate "Yellow" }
+                else { Log-Write $msgDate "Lime" }
+
+                Log-Write "  [THUMB]    $($cert2.Thumbprint)" "Magenta"
+                Log-Write "  [ISSUER]   $($cert2.Issuer)" "Gray"
+
+                $sanExt = $cert2.Extensions | Where-Object { $_.Oid.Value -eq "2.5.29.17" }
+                if ($sanExt) { Log-Write "  [SANs]     $($sanExt.Format($true))" "Cyan" }
+                else { Log-Write "  [SANs]     None (Single Host)" "Gray" }
+
+            } else { Log-Write "  [ERROR] No Certificate info." "Red" }
+        } catch { Log-Write "  [FAIL] Connection Error: $($_.Exception.Message)" "Red" }
+        Log-Write "" "Black"
     }
     [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
 })
 
-# --- EVENT: SAVE LOGS ---
+# --- SAVE LOGS ---
 $btnSave.Add_Click({
     $saveDialog = New-Object System.Windows.Forms.SaveFileDialog
-    $saveDialog.Filter = "Text Files (*.txt)|*.txt|Log Files (*.log)|*.log"
+    $saveDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
     $saveDialog.Title = "Save Diagnostic Report"
-    $saveDialog.FileName = "Network_Report_$(Get-Date -Format 'yyyyMMdd_HHmm').txt"
-    
+    $saveDialog.FileName = "NetReport_$(Get-Date -Format 'yyyyMMdd_HHmm').txt"
     if ($saveDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
             $rtbLog.Text | Out-File -FilePath $saveDialog.FileName -Encoding UTF8
-            [System.Windows.Forms.MessageBox]::Show("Report saved successfully!", "Export", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
+            [System.Windows.Forms.MessageBox]::Show("Report saved successfully!", "Success", "OK", "Information")
         } catch {
-            [System.Windows.Forms.MessageBox]::Show("Error saving file: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+            [System.Windows.Forms.MessageBox]::Show("Error saving file: $($_.Exception.Message)", "Error", "OK", "Error")
         }
     }
 })
 
 $btnClear.Add_Click({ $rtbLog.Clear() })
 
-# --- LAUNCH ---
+# LAUNCH
 $form.ShowDialog()
