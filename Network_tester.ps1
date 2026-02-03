@@ -6,8 +6,7 @@
     A forensic-grade network diagnostic suite designed for restricted corporate environments.
     
     CHANGELOG v5.6:
-    - GUI CLEANUP: Removed redundant text "(If none specified)" from the TCP Port label 
-      for a cleaner look.
+    - GUI CLEANUP
     
     CAPABILITIES:
     1. DNS RESOLUTION: Deep inspection of Hostnames, CNAMEs (Aliases), and IPs.
@@ -532,4 +531,5 @@ $btnClear.Add_Click({ $rtbLog.Clear() })
 
 # LAUNCH
 $form.ShowDialog()
+
 
