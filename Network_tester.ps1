@@ -8,7 +8,7 @@
     Layer 7 HTTP Proxy simulation.
 
 .NOTES
-    Version:        2.2 (Bugfix Release)
+    Version:        2.3 (Resizable / Full Screen Support)
     Requirements:   PowerShell 5.1+, .NET Framework 4.5+
     License:        MIT (Open Source)
 #>
@@ -24,13 +24,14 @@ Add-Type -AssemblyName System.Drawing
 # MAIN FORM SETUP
 # =============================================================================
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Enterprise Network Master Tool v2.2"
+$form.Text = "Enterprise Network Master Tool v2.3"
 $form.Size = New-Object System.Drawing.Size(1000, 800)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $form.ForeColor = "WhiteSmoke"
-$form.FormBorderStyle = "FixedSingle"
-$form.MaximizeBox = $false
+# FIX: Allow Resizing
+$form.FormBorderStyle = "Sizable" 
+$form.MaximizeBox = $true
 $form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 
 # --- TYPOGRAPHY ---
@@ -40,7 +41,7 @@ $fontInput = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.Font
 $fontLog   = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Regular)
 
 # =============================================================================
-# SECTION 1: TARGET CONFIGURATION
+# SECTION 1: TARGET CONFIGURATION (Left Panel - Fixed)
 # =============================================================================
 $grpTargets = New-Object System.Windows.Forms.GroupBox
 $grpTargets.Text = " 1. Target Configuration "
@@ -48,6 +49,8 @@ $grpTargets.Location = New-Object System.Drawing.Point(15, 15)
 $grpTargets.Size = New-Object System.Drawing.Size(340, 260)
 $grpTargets.ForeColor = "Cyan"
 $grpTargets.Font = $fontTitle
+# Anchor Top-Left (Standard)
+$grpTargets.Anchor = "Top, Left"
 $form.Controls.Add($grpTargets)
 
     $lblTargets = New-Object System.Windows.Forms.Label
@@ -85,7 +88,7 @@ $form.Controls.Add($grpTargets)
     $grpTargets.Controls.Add($txtPort)
 
 # =============================================================================
-# SECTION 2: PROXY STRATEGY
+# SECTION 2: PROXY STRATEGY (Left Panel - Fixed)
 # =============================================================================
 $grpProxy = New-Object System.Windows.Forms.GroupBox
 $grpProxy.Text = " 2. Proxy Strategy "
@@ -93,6 +96,7 @@ $grpProxy.Location = New-Object System.Drawing.Point(15, 290)
 $grpProxy.Size = New-Object System.Drawing.Size(340, 220)
 $grpProxy.ForeColor = "Yellow"
 $grpProxy.Font = $fontTitle
+$grpProxy.Anchor = "Top, Left"
 $form.Controls.Add($grpProxy)
 
     $rbPac = New-Object System.Windows.Forms.RadioButton
@@ -136,7 +140,7 @@ $form.Controls.Add($grpProxy)
     $grpProxy.Controls.Add($rbNoProxy)
 
 # =============================================================================
-# SECTION 3: EXECUTION CONTROLS
+# SECTION 3: EXECUTION CONTROLS (Left Panel - Fixed)
 # =============================================================================
 $grpActions = New-Object System.Windows.Forms.GroupBox
 $grpActions.Text = " 3. Execute Diagnostics "
@@ -144,6 +148,7 @@ $grpActions.Location = New-Object System.Drawing.Point(15, 520)
 $grpActions.Size = New-Object System.Drawing.Size(340, 230)
 $grpActions.ForeColor = "LightGreen"
 $grpActions.Font = $fontTitle
+$grpActions.Anchor = "Top, Left"
 $form.Controls.Add($grpActions)
 
     # Button DNS
@@ -191,7 +196,7 @@ $form.Controls.Add($grpActions)
     $grpActions.Controls.Add($btnHTTP)
 
 # =============================================================================
-# SECTION 4: OUTPUT LOGS
+# SECTION 4: OUTPUT LOGS (Right Panel - Resizable)
 # =============================================================================
 $grpLog = New-Object System.Windows.Forms.GroupBox
 $grpLog.Text = " Diagnostic Output "
@@ -199,6 +204,8 @@ $grpLog.Location = New-Object System.Drawing.Point(370, 15)
 $grpLog.Size = New-Object System.Drawing.Size(600, 735)
 $grpLog.ForeColor = "White"
 $grpLog.Font = $fontTitle
+# FIX: Anchor to all sides so it stretches
+$grpLog.Anchor = "Top, Bottom, Left, Right"
 $form.Controls.Add($grpLog)
 
     $rtbLog = New-Object System.Windows.Forms.RichTextBox
@@ -208,17 +215,20 @@ $form.Controls.Add($grpLog)
     $rtbLog.ForeColor = "LightGray"
     $rtbLog.Font = $fontLog
     $rtbLog.ReadOnly = $true
+    # FIX: Stretch content inside
+    $rtbLog.Anchor = "Top, Bottom, Left, Right"
     $grpLog.Controls.Add($rtbLog)
     
     $btnClear = New-Object System.Windows.Forms.Button
     $btnClear.Text = "Clear Log Window"
     $btnClear.Location = New-Object System.Drawing.Point(15, 690)
     $btnClear.Size = New-Object System.Drawing.Size(570, 30)
-    # FIX: Correct object type assignment for Color
     $btnClear.BackColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
     $btnClear.ForeColor = "White"
     $btnClear.FlatStyle = "Flat"
     $btnClear.Font = $fontLabel
+    # FIX: Stick to bottom
+    $btnClear.Anchor = "Bottom, Left, Right"
     $grpLog.Controls.Add($btnClear)
 
 # =============================================================================
@@ -234,7 +244,7 @@ function Log-Write ($text, $color) {
     $form.Refresh()
 }
 
-# --- EVENT HANDLER DNS (UPDATED) ---
+# --- EVENT HANDLER DNS (Full) ---
 $btnDNS.Add_Click({
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING FULL DNS LOOKUP" "Cyan"
