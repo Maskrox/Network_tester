@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Enterprise Network Master Tool v5.6 (Final UI Polish)
+    Enterprise Network Master Tool v5.6
     
 .DESCRIPTION
     A forensic-grade network diagnostic suite designed for restricted corporate environments.
@@ -532,3 +532,4 @@ $btnClear.Add_Click({ $rtbLog.Clear() })
 
 # LAUNCH
 $form.ShowDialog()
+
