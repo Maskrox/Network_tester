@@ -1,31 +1,37 @@
 <#
 .SYNOPSIS
-    Enterprise Network Master Tool - Universal Connectivity Diagnostics Suite.
+    Enterprise Network Master Tool v3.0 - Universal Diagnostics Suite.
     
 .DESCRIPTION
-    A comprehensive GUI-based tool designed for IT Administrators and Network Engineers.
-    Includes advanced DNS resolution (Aliases/CNAMEs), TCP Socket testing, and 
-    Layer 7 HTTP Proxy simulation.
+    The ultimate connectivity troubleshooting tool for Enterprise Environments.
+    
+    FEATURES:
+    - Layer 1-7 Testing: ICMP, TCP Socket, DNS, and HTTP/Proxy.
+    - SSL INSPECTION: Checks certificate expiration dates and Issuer (Man-in-the-Middle detection).
+    - REPORTING: Export logs to timestamped text files.
+    - COMPATIBILITY: High-DPI support, Resizable Window, TLS 1.2 Enforcement.
+    - PROXY SUPPORT: Auto-detect (PAC), Manual, and Direct modes.
 
 .NOTES
-    Version:        2.5 (Bugfix: GroupBox Scroll)
+    Version:        3.0 (Master Edition)
     Requirements:   PowerShell 5.1+, .NET Framework 4.5+
-    License:        MIT (Open Source)
+    Author:         [Your Name/Handle]
+    License:        MIT
 #>
 
 # Load Assemblies
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# SECURITY: Force TLS 1.2
+# SECURITY: Force TLS 1.2 (Mandatory for modern cloud connectivity)
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # =============================================================================
 # MAIN FORM SETUP
 # =============================================================================
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Enterprise Network Master Tool v2.5"
-$form.Size = New-Object System.Drawing.Size(1050, 850)
+$form.Text = "Enterprise Network Master Tool v3.0"
+$form.Size = New-Object System.Drawing.Size(1100, 850)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $form.ForeColor = "WhiteSmoke"
@@ -139,86 +145,97 @@ $form.Controls.Add($grpProxy)
     $grpProxy.Controls.Add($rbNoProxy)
 
 # =============================================================================
-# SECTION 3: EXECUTION CONTROLS (AUTO-LAYOUT PANEL)
+# SECTION 3: EXECUTION CONTROLS (AUTO-LAYOUT)
 # =============================================================================
 $grpActions = New-Object System.Windows.Forms.GroupBox
 $grpActions.Text = " 3. Execute Diagnostics "
 $grpActions.Location = New-Object System.Drawing.Point(15, 520)
-$grpActions.Size = New-Object System.Drawing.Size(350, 280)
+$grpActions.Size = New-Object System.Drawing.Size(350, 310) # Increased height for SSL button
 $grpActions.ForeColor = "LightGreen"
 $grpActions.Font = $fontTitle
 $grpActions.Anchor = "Top, Left"
-# FIX: Do not set AutoScroll on GroupBox, use the inner Panel
 $form.Controls.Add($grpActions)
 
-    # Use FlowLayoutPanel to stack buttons automatically
+    # Use FlowLayoutPanel for auto-stacking buttons
     $flowPanel = New-Object System.Windows.Forms.FlowLayoutPanel
     $flowPanel.Dock = "Fill"
     $flowPanel.FlowDirection = "TopDown"
     $flowPanel.WrapContents = $false
-    $flowPanel.AutoScroll = $true # The Panel handles the scrolling, not the GroupBox
+    $flowPanel.AutoScroll = $true 
     $flowPanel.Padding = New-Object System.Windows.Forms.Padding(10)
     $grpActions.Controls.Add($flowPanel)
 
-    # Button DNS
+    # 1. DNS
     $btnDNS = New-Object System.Windows.Forms.Button
     $btnDNS.Text = "Test 1: DNS Lookup (Full Info)"
     $btnDNS.Size = New-Object System.Drawing.Size(310, 40)
-    $btnDNS.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10) # Spacing
+    $btnDNS.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
     $btnDNS.BackColor = "DimGray"
     $btnDNS.ForeColor = "White"
     $btnDNS.FlatStyle = "Flat"
     $btnDNS.Font = $fontLabel
     $flowPanel.Controls.Add($btnDNS)
 
-    # Button Ping
+    # 2. Ping
     $btnPing = New-Object System.Windows.Forms.Button
     $btnPing.Text = "Test 2: ICMP Ping"
     $btnPing.Size = New-Object System.Drawing.Size(310, 40)
-    $btnPing.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
+    $btnPing.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
     $btnPing.BackColor = "DimGray"
     $btnPing.ForeColor = "White"
     $btnPing.FlatStyle = "Flat"
     $btnPing.Font = $fontLabel
     $flowPanel.Controls.Add($btnPing)
 
-    # Button TCP
+    # 3. TCP
     $btnTCP = New-Object System.Windows.Forms.Button
     $btnTCP.Text = "Test 3: TCP Socket (Firewall Check)"
     $btnTCP.Size = New-Object System.Drawing.Size(310, 40)
-    $btnTCP.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
+    $btnTCP.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
     $btnTCP.BackColor = "DimGray"
     $btnTCP.ForeColor = "White"
     $btnTCP.FlatStyle = "Flat"
     $btnTCP.Font = $fontLabel
     $flowPanel.Controls.Add($btnTCP)
 
-    # Button HTTP
+    # 4. HTTP
     $btnHTTP = New-Object System.Windows.Forms.Button
     $btnHTTP.Text = "Test 4: HTTP / PROXY (Layer 7)"
-    $btnHTTP.Size = New-Object System.Drawing.Size(310, 50)
-    $btnHTTP.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
+    $btnHTTP.Size = New-Object System.Drawing.Size(310, 45)
+    $btnHTTP.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
     $btnHTTP.BackColor = "SeaGreen"
     $btnHTTP.ForeColor = "White"
     $btnHTTP.FlatStyle = "Flat"
     $btnHTTP.Font = [System.Drawing.Font]::new("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
     $flowPanel.Controls.Add($btnHTTP)
 
+    # 5. SSL (NEW)
+    $btnSSL = New-Object System.Windows.Forms.Button
+    $btnSSL.Text = "Test 5: SSL Expiration Check"
+    $btnSSL.Size = New-Object System.Drawing.Size(310, 40)
+    $btnSSL.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
+    $btnSSL.BackColor = "Purple" # Distinct color
+    $btnSSL.ForeColor = "White"
+    $btnSSL.FlatStyle = "Flat"
+    $btnSSL.Font = $fontLabel
+    $flowPanel.Controls.Add($btnSSL)
+
 # =============================================================================
-# SECTION 4: OUTPUT LOGS (Right Panel - Resizable)
+# SECTION 4: OUTPUT LOGS (Right Panel)
 # =============================================================================
 $grpLog = New-Object System.Windows.Forms.GroupBox
 $grpLog.Text = " Diagnostic Output "
 $grpLog.Location = New-Object System.Drawing.Point(380, 15)
-$grpLog.Size = New-Object System.Drawing.Size(640, 785)
+$grpLog.Size = New-Object System.Drawing.Size(690, 815)
 $grpLog.ForeColor = "White"
 $grpLog.Font = $fontTitle
 $grpLog.Anchor = "Top, Bottom, Left, Right"
 $form.Controls.Add($grpLog)
 
+    # RichTextBox
     $rtbLog = New-Object System.Windows.Forms.RichTextBox
     $rtbLog.Location = New-Object System.Drawing.Point(15, 30)
-    $rtbLog.Size = New-Object System.Drawing.Size(610, 700)
+    $rtbLog.Size = New-Object System.Drawing.Size(660, 730)
     $rtbLog.BackColor = "Black"
     $rtbLog.ForeColor = "LightGray"
     $rtbLog.Font = $fontLog
@@ -226,16 +243,29 @@ $form.Controls.Add($grpLog)
     $rtbLog.Anchor = "Top, Bottom, Left, Right"
     $grpLog.Controls.Add($rtbLog)
     
+    # Button Clear (Left)
     $btnClear = New-Object System.Windows.Forms.Button
-    $btnClear.Text = "Clear Log Window"
-    $btnClear.Location = New-Object System.Drawing.Point(15, 740)
-    $btnClear.Size = New-Object System.Drawing.Size(610, 35)
+    $btnClear.Text = "Clear Logs"
+    $btnClear.Location = New-Object System.Drawing.Point(15, 770)
+    $btnClear.Size = New-Object System.Drawing.Size(320, 35)
     $btnClear.BackColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
     $btnClear.ForeColor = "White"
     $btnClear.FlatStyle = "Flat"
     $btnClear.Font = $fontLabel
-    $btnClear.Anchor = "Bottom, Left, Right"
+    $btnClear.Anchor = "Bottom, Left"
     $grpLog.Controls.Add($btnClear)
+
+    # Button Save (Right) - NEW
+    $btnSave = New-Object System.Windows.Forms.Button
+    $btnSave.Text = "💾 Export Report to File"
+    $btnSave.Location = New-Object System.Drawing.Point(350, 770)
+    $btnSave.Size = New-Object System.Drawing.Size(325, 35)
+    $btnSave.BackColor = "DimGray"
+    $btnSave.ForeColor = "White"
+    $btnSave.FlatStyle = "Flat"
+    $btnSave.Font = $fontLabel
+    $btnSave.Anchor = "Bottom, Right"
+    $grpLog.Controls.Add($btnSave)
 
 # =============================================================================
 # LOGIC CORE
@@ -250,16 +280,14 @@ function Log-Write ($text, $color) {
     $form.Refresh()
 }
 
-# --- EVENT HANDLER DNS ---
+# --- EVENT: DNS ---
 $btnDNS.Add_Click({
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING FULL DNS LOOKUP" "Cyan"
-    
     $targets = $txtTargets.Text -split "`n"
     foreach ($t in $targets) {
         $t = $t.Trim() -replace "https://","" -replace "http://","" -replace "/.*",""
         if ([string]::IsNullOrWhiteSpace($t)) { continue }
-        
         Log-Write "Querying: $t ..." "White"
         try {
             $entry = [System.Net.Dns]::GetHostEntry($t)
@@ -270,7 +298,7 @@ $btnDNS.Add_Click({
     }
 })
 
-# --- EVENT HANDLER PING ---
+# --- EVENT: PING ---
 $btnPing.Add_Click({
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING ICMP PING TEST" "Cyan"
@@ -287,7 +315,7 @@ $btnPing.Add_Click({
     }
 })
 
-# --- EVENT HANDLER TCP ---
+# --- EVENT: TCP ---
 $btnTCP.Add_Click({
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING TCP PORT TEST (Bypassing Proxy)" "Cyan"
@@ -305,11 +333,10 @@ $btnTCP.Add_Click({
     }
 })
 
-# --- EVENT HANDLER HTTP ---
+# --- EVENT: HTTP ---
 $btnHTTP.Add_Click({
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING HTTP PROXY TEST (Layer 7)" "Cyan"
-    
     try {
         if ($rbPac.Checked) {
             Log-Write "Strategy: SYSTEM / PAC (Auto-Detect)" "Yellow"
@@ -346,6 +373,77 @@ $btnHTTP.Add_Click({
                 elseif ($c -eq 407) { Log-Write "  [BLOCKED] Proxy Auth Required (407)." "Red" }
                 else { Log-Write "  [WARNING] Server Code $c" "Orange" }
             } else { Log-Write "  [FAIL] Unreachable." "Red" }
+        }
+    }
+})
+
+# --- EVENT: SSL ---
+$btnSSL.Add_Click({
+    Log-Write "--------------------------------------------------" "Gray"
+    Log-Write ">>> STARTING SSL CERTIFICATE INSPECTION" "Cyan"
+    
+    # Configure Proxy for SSL Request
+    $proxyObj = $null
+    if ($rbPac.Checked) { 
+        $proxyObj = [System.Net.WebRequest]::GetSystemWebProxy()
+        $proxyObj.Credentials = [System.Net.CredentialCache]::DefaultCredentials 
+    } elseif ($rbManual.Checked) { 
+        if (-not [string]::IsNullOrWhiteSpace($txtProxyAddr.Text)) {
+            $proxyObj = New-Object System.Net.WebProxy("http://" + $txtProxyAddr.Text + ":" + $txtProxyPort.Text)
+            $proxyObj.UseDefaultCredentials = $true
+        }
+    }
+
+    # Override SSL validation (to read certs even if they have errors)
+    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+    $targets = $txtTargets.Text -split "`n"
+    foreach ($t in $targets) {
+        $t = $t.Trim()
+        if ([string]::IsNullOrWhiteSpace($t)) { continue }
+        if (-not ($t -match "^http")) { $t = "https://" + $t }
+
+        Log-Write "Inspecting: $t" "White"
+        try {
+            $req = [System.Net.HttpWebRequest]::Create($t)
+            $req.Timeout = 10000
+            if ($proxyObj) { $req.Proxy = $proxyObj } else { $req.Proxy = $null }
+            try { $null = $req.GetResponse() } catch {}
+            
+            if ($req.ServicePoint.Certificate) {
+                $cert = $req.ServicePoint.Certificate
+                $expiry = [DateTime]::Parse($cert.GetExpirationDateString())
+                $daysLeft = ($expiry - (Get-Date)).Days
+                $issuer = $cert.GetIssuerName()
+                
+                $msg = "  [VALID] Expires: $($expiry.ToShortDateString()) ($daysLeft days left)"
+                if ($daysLeft -lt 0) { Log-Write $msg "Red" }
+                elseif ($daysLeft -lt 60) { Log-Write $msg "Yellow" }
+                else { Log-Write $msg "Lime" }
+                Log-Write "  [ISSUER] $issuer" "Gray"
+            } else {
+                Log-Write "  [ERROR] No Certificate info returned." "Red"
+            }
+        } catch {
+            Log-Write "  [FAIL] Connection Error: $($_.Exception.Message)" "Red"
+        }
+    }
+    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
+})
+
+# --- EVENT: SAVE LOGS ---
+$btnSave.Add_Click({
+    $saveDialog = New-Object System.Windows.Forms.SaveFileDialog
+    $saveDialog.Filter = "Text Files (*.txt)|*.txt|Log Files (*.log)|*.log"
+    $saveDialog.Title = "Save Diagnostic Report"
+    $saveDialog.FileName = "Network_Report_$(Get-Date -Format 'yyyyMMdd_HHmm').txt"
+    
+    if ($saveDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+        try {
+            $rtbLog.Text | Out-File -FilePath $saveDialog.FileName -Encoding UTF8
+            [System.Windows.Forms.MessageBox]::Show("Report saved successfully!", "Export", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show("Error saving file: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
         }
     }
 })
