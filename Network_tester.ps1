@@ -8,7 +8,7 @@
     Layer 7 HTTP Proxy simulation.
 
 .NOTES
-    Version:        2.3 (Resizable / Full Screen Support)
+    Version:        2.5 (Bugfix: GroupBox Scroll)
     Requirements:   PowerShell 5.1+, .NET Framework 4.5+
     License:        MIT (Open Source)
 #>
@@ -24,14 +24,14 @@ Add-Type -AssemblyName System.Drawing
 # MAIN FORM SETUP
 # =============================================================================
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Enterprise Network Master Tool v2.3"
-$form.Size = New-Object System.Drawing.Size(1000, 800)
+$form.Text = "Enterprise Network Master Tool v2.5"
+$form.Size = New-Object System.Drawing.Size(1050, 850)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $form.ForeColor = "WhiteSmoke"
-# FIX: Allow Resizing
-$form.FormBorderStyle = "Sizable" 
+$form.FormBorderStyle = "Sizable"
 $form.MaximizeBox = $true
+$form.AutoScroll = $true
 $form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 
 # --- TYPOGRAPHY ---
@@ -41,15 +41,14 @@ $fontInput = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.Font
 $fontLog   = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Regular)
 
 # =============================================================================
-# SECTION 1: TARGET CONFIGURATION (Left Panel - Fixed)
+# SECTION 1: TARGET CONFIGURATION (Left Panel)
 # =============================================================================
 $grpTargets = New-Object System.Windows.Forms.GroupBox
 $grpTargets.Text = " 1. Target Configuration "
 $grpTargets.Location = New-Object System.Drawing.Point(15, 15)
-$grpTargets.Size = New-Object System.Drawing.Size(340, 260)
+$grpTargets.Size = New-Object System.Drawing.Size(350, 260)
 $grpTargets.ForeColor = "Cyan"
 $grpTargets.Font = $fontTitle
-# Anchor Top-Left (Standard)
 $grpTargets.Anchor = "Top, Left"
 $form.Controls.Add($grpTargets)
 
@@ -65,7 +64,7 @@ $form.Controls.Add($grpTargets)
     $txtTargets.Multiline = $true
     $txtTargets.ScrollBars = "Vertical"
     $txtTargets.Location = New-Object System.Drawing.Point(15, 55)
-    $txtTargets.Size = New-Object System.Drawing.Size(310, 140)
+    $txtTargets.Size = New-Object System.Drawing.Size(320, 140)
     $txtTargets.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 50)
     $txtTargets.ForeColor = "White"
     $txtTargets.Font = $fontInput
@@ -80,20 +79,20 @@ $form.Controls.Add($grpTargets)
     $grpTargets.Controls.Add($lblPort)
 
     $txtPort = New-Object System.Windows.Forms.TextBox
-    $txtPort.Location = New-Object System.Drawing.Point(220, 212)
-    $txtPort.Size = New-Object System.Drawing.Size(105, 26)
+    $txtPort.Location = New-Object System.Drawing.Point(230, 212)
+    $txtPort.Size = New-Object System.Drawing.Size(95, 26)
     $txtPort.Text = "443"
     $txtPort.Font = $fontInput
     $txtPort.TextAlign = "Center"
     $grpTargets.Controls.Add($txtPort)
 
 # =============================================================================
-# SECTION 2: PROXY STRATEGY (Left Panel - Fixed)
+# SECTION 2: PROXY STRATEGY (Left Panel)
 # =============================================================================
 $grpProxy = New-Object System.Windows.Forms.GroupBox
 $grpProxy.Text = " 2. Proxy Strategy "
 $grpProxy.Location = New-Object System.Drawing.Point(15, 290)
-$grpProxy.Size = New-Object System.Drawing.Size(340, 220)
+$grpProxy.Size = New-Object System.Drawing.Size(350, 220)
 $grpProxy.ForeColor = "Yellow"
 $grpProxy.Font = $fontTitle
 $grpProxy.Anchor = "Top, Left"
@@ -102,7 +101,7 @@ $form.Controls.Add($grpProxy)
     $rbPac = New-Object System.Windows.Forms.RadioButton
     $rbPac.Text = "System / PAC Script (Auto-Detect)"
     $rbPac.Location = New-Object System.Drawing.Point(20, 30)
-    $rbPac.Size = New-Object System.Drawing.Size(300, 25)
+    $rbPac.Size = New-Object System.Drawing.Size(310, 25)
     $rbPac.ForeColor = "White"
     $rbPac.Font = $fontLabel
     $rbPac.Checked = $false
@@ -111,7 +110,7 @@ $form.Controls.Add($grpProxy)
     $rbManual = New-Object System.Windows.Forms.RadioButton
     $rbManual.Text = "Manual Configuration:"
     $rbManual.Location = New-Object System.Drawing.Point(20, 65)
-    $rbManual.Size = New-Object System.Drawing.Size(300, 25)
+    $rbManual.Size = New-Object System.Drawing.Size(310, 25)
     $rbManual.ForeColor = "White"
     $rbManual.Font = $fontLabel
     $grpProxy.Controls.Add($rbManual)
@@ -133,101 +132,108 @@ $form.Controls.Add($grpProxy)
     $rbNoProxy = New-Object System.Windows.Forms.RadioButton
     $rbNoProxy.Text = "No Proxy (Direct Access)"
     $rbNoProxy.Location = New-Object System.Drawing.Point(20, 140)
-    $rbNoProxy.Size = New-Object System.Drawing.Size(300, 25)
+    $rbNoProxy.Size = New-Object System.Drawing.Size(310, 25)
     $rbNoProxy.ForeColor = "Silver"
     $rbNoProxy.Font = $fontLabel
     $rbNoProxy.Checked = $true
     $grpProxy.Controls.Add($rbNoProxy)
 
 # =============================================================================
-# SECTION 3: EXECUTION CONTROLS (Left Panel - Fixed)
+# SECTION 3: EXECUTION CONTROLS (AUTO-LAYOUT PANEL)
 # =============================================================================
 $grpActions = New-Object System.Windows.Forms.GroupBox
 $grpActions.Text = " 3. Execute Diagnostics "
 $grpActions.Location = New-Object System.Drawing.Point(15, 520)
-$grpActions.Size = New-Object System.Drawing.Size(340, 230)
+$grpActions.Size = New-Object System.Drawing.Size(350, 280)
 $grpActions.ForeColor = "LightGreen"
 $grpActions.Font = $fontTitle
 $grpActions.Anchor = "Top, Left"
+# FIX: Do not set AutoScroll on GroupBox, use the inner Panel
 $form.Controls.Add($grpActions)
+
+    # Use FlowLayoutPanel to stack buttons automatically
+    $flowPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+    $flowPanel.Dock = "Fill"
+    $flowPanel.FlowDirection = "TopDown"
+    $flowPanel.WrapContents = $false
+    $flowPanel.AutoScroll = $true # The Panel handles the scrolling, not the GroupBox
+    $flowPanel.Padding = New-Object System.Windows.Forms.Padding(10)
+    $grpActions.Controls.Add($flowPanel)
 
     # Button DNS
     $btnDNS = New-Object System.Windows.Forms.Button
     $btnDNS.Text = "Test 1: DNS Lookup (Full Info)"
-    $btnDNS.Location = New-Object System.Drawing.Point(20, 30)
-    $btnDNS.Size = New-Object System.Drawing.Size(300, 35)
+    $btnDNS.Size = New-Object System.Drawing.Size(310, 40)
+    $btnDNS.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10) # Spacing
     $btnDNS.BackColor = "DimGray"
     $btnDNS.ForeColor = "White"
     $btnDNS.FlatStyle = "Flat"
     $btnDNS.Font = $fontLabel
-    $grpActions.Controls.Add($btnDNS)
+    $flowPanel.Controls.Add($btnDNS)
 
     # Button Ping
     $btnPing = New-Object System.Windows.Forms.Button
     $btnPing.Text = "Test 2: ICMP Ping"
-    $btnPing.Location = New-Object System.Drawing.Point(20, 75)
-    $btnPing.Size = New-Object System.Drawing.Size(300, 35)
+    $btnPing.Size = New-Object System.Drawing.Size(310, 40)
+    $btnPing.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
     $btnPing.BackColor = "DimGray"
     $btnPing.ForeColor = "White"
     $btnPing.FlatStyle = "Flat"
     $btnPing.Font = $fontLabel
-    $grpActions.Controls.Add($btnPing)
+    $flowPanel.Controls.Add($btnPing)
 
     # Button TCP
     $btnTCP = New-Object System.Windows.Forms.Button
     $btnTCP.Text = "Test 3: TCP Socket (Firewall Check)"
-    $btnTCP.Location = New-Object System.Drawing.Point(20, 120)
-    $btnTCP.Size = New-Object System.Drawing.Size(300, 35)
+    $btnTCP.Size = New-Object System.Drawing.Size(310, 40)
+    $btnTCP.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
     $btnTCP.BackColor = "DimGray"
     $btnTCP.ForeColor = "White"
     $btnTCP.FlatStyle = "Flat"
     $btnTCP.Font = $fontLabel
-    $grpActions.Controls.Add($btnTCP)
+    $flowPanel.Controls.Add($btnTCP)
 
     # Button HTTP
     $btnHTTP = New-Object System.Windows.Forms.Button
     $btnHTTP.Text = "Test 4: HTTP / PROXY (Layer 7)"
-    $btnHTTP.Location = New-Object System.Drawing.Point(20, 165)
-    $btnHTTP.Size = New-Object System.Drawing.Size(300, 45)
+    $btnHTTP.Size = New-Object System.Drawing.Size(310, 50)
+    $btnHTTP.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
     $btnHTTP.BackColor = "SeaGreen"
     $btnHTTP.ForeColor = "White"
     $btnHTTP.FlatStyle = "Flat"
     $btnHTTP.Font = [System.Drawing.Font]::new("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-    $grpActions.Controls.Add($btnHTTP)
+    $flowPanel.Controls.Add($btnHTTP)
 
 # =============================================================================
 # SECTION 4: OUTPUT LOGS (Right Panel - Resizable)
 # =============================================================================
 $grpLog = New-Object System.Windows.Forms.GroupBox
 $grpLog.Text = " Diagnostic Output "
-$grpLog.Location = New-Object System.Drawing.Point(370, 15)
-$grpLog.Size = New-Object System.Drawing.Size(600, 735)
+$grpLog.Location = New-Object System.Drawing.Point(380, 15)
+$grpLog.Size = New-Object System.Drawing.Size(640, 785)
 $grpLog.ForeColor = "White"
 $grpLog.Font = $fontTitle
-# FIX: Anchor to all sides so it stretches
 $grpLog.Anchor = "Top, Bottom, Left, Right"
 $form.Controls.Add($grpLog)
 
     $rtbLog = New-Object System.Windows.Forms.RichTextBox
     $rtbLog.Location = New-Object System.Drawing.Point(15, 30)
-    $rtbLog.Size = New-Object System.Drawing.Size(570, 650)
+    $rtbLog.Size = New-Object System.Drawing.Size(610, 700)
     $rtbLog.BackColor = "Black"
     $rtbLog.ForeColor = "LightGray"
     $rtbLog.Font = $fontLog
     $rtbLog.ReadOnly = $true
-    # FIX: Stretch content inside
     $rtbLog.Anchor = "Top, Bottom, Left, Right"
     $grpLog.Controls.Add($rtbLog)
     
     $btnClear = New-Object System.Windows.Forms.Button
     $btnClear.Text = "Clear Log Window"
-    $btnClear.Location = New-Object System.Drawing.Point(15, 690)
-    $btnClear.Size = New-Object System.Drawing.Size(570, 30)
+    $btnClear.Location = New-Object System.Drawing.Point(15, 740)
+    $btnClear.Size = New-Object System.Drawing.Size(610, 35)
     $btnClear.BackColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
     $btnClear.ForeColor = "White"
     $btnClear.FlatStyle = "Flat"
     $btnClear.Font = $fontLabel
-    # FIX: Stick to bottom
     $btnClear.Anchor = "Bottom, Left, Right"
     $grpLog.Controls.Add($btnClear)
 
@@ -244,7 +250,7 @@ function Log-Write ($text, $color) {
     $form.Refresh()
 }
 
-# --- EVENT HANDLER DNS (Full) ---
+# --- EVENT HANDLER DNS ---
 $btnDNS.Add_Click({
     Log-Write "--------------------------------------------------" "Gray"
     Log-Write ">>> STARTING FULL DNS LOOKUP" "Cyan"
@@ -257,21 +263,10 @@ $btnDNS.Add_Click({
         Log-Write "Querying: $t ..." "White"
         try {
             $entry = [System.Net.Dns]::GetHostEntry($t)
-            
             Log-Write "  [NAME]  $($entry.HostName)" "Lime"
-            
-            if ($entry.Aliases) {
-                foreach ($alias in $entry.Aliases) {
-                    Log-Write "  [ALIAS] $alias" "Yellow"
-                }
-            }
-            
-            foreach ($ip in $entry.AddressList) {
-                Log-Write "  [IP]    $($ip.IPAddressToString)" "Gray"
-            }
-        } catch { 
-            Log-Write "  [DNS FAIL] Host not found / No records." "Red" 
-        }
+            if ($entry.Aliases) { foreach ($alias in $entry.Aliases) { Log-Write "  [ALIAS] $alias" "Yellow" } }
+            foreach ($ip in $entry.AddressList) { Log-Write "  [IP]    $($ip.IPAddressToString)" "Gray" }
+        } catch { Log-Write "  [DNS FAIL] Host not found / No records." "Red" }
     }
 })
 
@@ -322,9 +317,7 @@ $btnHTTP.Add_Click({
             $sysProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
             [System.Net.WebRequest]::DefaultWebProxy = $sysProxy
         } elseif ($rbManual.Checked) {
-            if ([string]::IsNullOrWhiteSpace($txtProxyAddr.Text)) {
-                Log-Write "Error: Proxy Address empty." "Red"; return
-            }
+            if ([string]::IsNullOrWhiteSpace($txtProxyAddr.Text)) { Log-Write "Error: Proxy Address empty." "Red"; return }
             $p = "http://" + $txtProxyAddr.Text + ":" + $txtProxyPort.Text
             Log-Write "Strategy: MANUAL PROXY ($p)" "Yellow"
             $wp = New-Object System.Net.WebProxy($p)
@@ -341,7 +334,6 @@ $btnHTTP.Add_Click({
         $t = $t.Trim()
         if ([string]::IsNullOrWhiteSpace($t)) { continue }
         if (-not ($t -match "^http")) { $t = "https://" + $t }
-        
         Log-Write "Requesting: $t" "White"
         try {
             $req = Invoke-WebRequest -Uri $t -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
@@ -350,16 +342,10 @@ $btnHTTP.Add_Click({
             $ex = $_.Exception
             if ($ex.Response) {
                 $c = [int]$ex.Response.StatusCode
-                if ($c -eq 404 -or $c -eq 403) {
-                    Log-Write "  [CONNECTED] Reached Server (Code $c)." "Lime"
-                } elseif ($c -eq 407) {
-                    Log-Write "  [BLOCKED] Proxy Auth Required (407)." "Red"
-                } else {
-                    Log-Write "  [WARNING] Server Code $c" "Orange"
-                }
-            } else {
-                Log-Write "  [FAIL] Unreachable." "Red"
-            }
+                if ($c -eq 404 -or $c -eq 403) { Log-Write "  [CONNECTED] Reached Server (Code $c)." "Lime" }
+                elseif ($c -eq 407) { Log-Write "  [BLOCKED] Proxy Auth Required (407)." "Red" }
+                else { Log-Write "  [WARNING] Server Code $c" "Orange" }
+            } else { Log-Write "  [FAIL] Unreachable." "Red" }
         }
     }
 })
